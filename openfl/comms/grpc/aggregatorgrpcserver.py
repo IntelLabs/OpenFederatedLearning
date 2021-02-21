@@ -121,7 +121,7 @@ class AggregatorGRPCServer(AggregatorServicer):
             kwargs (dict): Additional arguments to pass into function
         """
         logger = logging.getLogger(__name__)
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=1),
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=8),
                              options=[('grpc.max_metadata_size', 32 * 1024 * 1024),
                                       ('grpc.max_send_message_length', 128 * 1024 * 1024),
                                       ('grpc.max_receive_message_length', 128 * 1024 * 1024)])
