@@ -181,13 +181,13 @@ def datastream_to_proto(proto, stream, logger=None):
     else:
         raise RuntimeError("Received empty stream message of type {}".format(type(proto)))
 
-def proto_to_datastream(proto, logger, max_buffer_size=(2 * 1024 * 1024)):
+def proto_to_datastream(proto, logger, max_buffer_size=(256 * 1024)):
     """Convert the protobuf to the datastream for the remote connection
 
     Args:
         model_proto: The protobuf of the model
         logger: The log object
-        max_buffer_size: The buffer size (Default= 2*1024*1024)
+        max_buffer_size: The buffer size (Default= 256 * 1024)
     Returns:
         reply: The message for the remote connection.
     """
