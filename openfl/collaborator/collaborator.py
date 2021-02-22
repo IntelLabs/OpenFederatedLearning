@@ -373,20 +373,17 @@ class Collaborator(object):
         for i in range(self.num_models):
             # FIXME: this needs to be a more robust response. The aggregator should actually have sent an error code, rather than an unhandled exception
             # an exception can happen in cases where we simply need to retry
-            try:
-                reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(),
-                                                                             model=model_proto,
-                                                                             data_size=data_size,
-                                                                             loss=loss,
-                                                                             model_num=i))
-            except Exception as e:
-                self.logger.exception(repr(e))
-                self.logger.warning("Retrying upload of model")
-                reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(),
-                                                                             model=model_proto,
-                                                                             data_size=data_size,
-                                                                             loss=loss,
-                                                                             model_num=i))
+            for _ in range(5):
+                try:
+                    reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(),
+                                                                                model=model_proto,
+                                                                                data_size=data_size,
+                                                                                loss=loss,
+                                                                                model_num=i))
+                    break
+                except Exception as e:
+                    self.logger.exception(repr(e))
+                    self.logger.warning("Retrying upload of model")
 
         self.validate_header(reply)
         check_type(reply, LocalModelUpdateAck, self.logger)
@@ -423,16 +420,15 @@ class Collaborator(object):
             # sanity check on version is implicit in send
             # FIXME: this needs to be a more robust response. The aggregator should actually have sent an error code, rather than an unhandled exception
             # an exception can happen in cases where we simply need to retry
-            try:
-                reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(),
-                                                                        model_header=self.model_header,
-                                                                        model_num=i))
-            except Exception as e:
-                self.logger.exception(repr(e))
-                self.logger.warning("Retrying download of model")
-                reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(),
-                                                                        model_header=self.model_header,
-                                                                        model_num=i))
+            for _ in range(5):
+                try:
+                    reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(),
+                                                                            model_header=self.model_header,
+                                                                            model_num=i))
+                    break
+                except Exception as e:
+                    self.logger.exception(repr(e))
+                    self.logger.warning("Retrying download of model")
 
         received_model_proto = reply.model
         received_model_version = received_model_proto.header.version
