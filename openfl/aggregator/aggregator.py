@@ -443,7 +443,7 @@ class Aggregator(object):
             t = time.time()
             self.validate_header(message)
 
-            self.logger.info("Receive model update from %s " % message.header.sender)
+            # self.logger.info("Receive model update from %s " % message.header.sender)
 
             # Get the model parameters from the model proto and additional model info
             model_tensors = deconstruct_proto(model_proto=message.model, compression_pipeline=self.compression_pipeline)
@@ -508,12 +508,15 @@ class Aggregator(object):
             self.per_col_round_stats["collaborator_training_sizes"][message.header.sender] = message.data_size
 
             # return LocalModelUpdateAck
-            self.logger.debug("Complete model update from %s " % message.header.sender)
+            # self.logger.debug("Complete model update from %s " % message.header.sender)
             reply = LocalModelUpdateAck(header=self.create_reply_header(message))
 
             self.end_of_round_check()
 
-            self.logger.debug('aggregator handled UploadLocalModelUpdate in time {}'.format(time.time() - t))
+            # self.logger.debug('aggregator handled UploadLocalModelUpdate in time {}'.format(time.time() - t))
+            if m == self.num_models - 1:
+                self.logger.info("Received model last model update from %s " % message.header.sender)
+
         finally:
             self.mutex.release()
 
@@ -649,7 +652,7 @@ class Aggregator(object):
         t = time.time()
         self.validate_header(message)
 
-        self.logger.info("Received model download request from %s " % message.header.sender)
+        # self.logger.info("Received model download request from %s " % message.header.sender)
 
         # ensure the models don't match
         # if not(self.collaborator_out_of_date(message.model_header)):
@@ -675,7 +678,8 @@ class Aggregator(object):
 
         reply = GlobalModelUpdate(header=self.create_reply_header(message), model=self.model, is_global_best=self.aggregated_model_is_global_best, metadata_yaml=metadata_yaml)
 
-        self.logger.debug('aggregator handled RequestJob in time {}'.format(time.time() - t))
+        if message.model_num == self.num_models - 1:
+            self.logger.info("Completed last model download request from %s " % message.header.sender)
 
         return reply
 
