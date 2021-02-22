@@ -83,6 +83,7 @@ class Collaborator(object):
                  save_best_native_path=None,
                  save_best_native_kwargs=None,
                  save_metadata_path=None,
+                 num_retries=5,
                  **kwargs):
         self.logger = logging.getLogger(__name__)
         self.channel = channel
@@ -90,6 +91,7 @@ class Collaborator(object):
         self.save_best_native_path = save_best_native_path
         self.save_best_native_kwargs = save_best_native_kwargs
         self.save_metadata_path = save_metadata_path
+        self.num_retries = num_retries
 
         # this stuff is really about sanity/correctness checking to ensure the bookkeeping and control flow is correct
         self.common_name = collaborator_common_name
@@ -368,12 +370,13 @@ class Collaborator(object):
 
         # FIXME: this needs to be a more robust response. The aggregator should actually have sent an error code, rather than an unhandled exception
         # an exception can happen in cases where we simply need to retry
-        try:
-            reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(), model=model_proto, data_size=data_size, loss=loss))
-        except Exception as e:
-            self.logger.exception(repr(e))
-            self.logger.warning("Retrying upload of model")
-            reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(), model=model_proto, data_size=data_size, loss=loss))
+        for i in range(self.num_retries):
+            try:
+                reply = self.channel.UploadLocalModelUpdate(LocalModelUpdate(header=self.create_message_header(), model=model_proto, data_size=data_size, loss=loss))
+                break
+            except Exception as e:
+                self.logger.exception(repr(e))
+                self.logger.warning("Retrying upload of model. Try {} of {}".format(i+1, self.num_retries))
 
         self.validate_header(reply)
         check_type(reply, LocalModelUpdateAck, self.logger)
@@ -409,12 +412,13 @@ class Collaborator(object):
         # sanity check on version is implicit in send
         # FIXME: this needs to be a more robust response. The aggregator should actually have sent an error code, rather than an unhandled exception
         # an exception can happen in cases where we simply need to retry
-        try:
-            reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(), model_header=self.model_header))
-        except Exception as e:
-            self.logger.exception(repr(e))
-            self.logger.warning("Retrying download of model")
-            reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(), model_header=self.model_header))
+        for i in range(self.num_retries):
+            try:
+                reply = self.channel.DownloadModel(ModelDownloadRequest(header=self.create_message_header(), model_header=self.model_header))
+                break
+            except Exception as e:
+                self.logger.exception(repr(e))
+                self.logger.warning("Retrying download of model. Try {} of {}".format(i+1, self.num_retries))
 
         received_model_proto = reply.model
         received_model_version = received_model_proto.header.version
